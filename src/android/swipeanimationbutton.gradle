@@ -6,6 +6,7 @@ repositories{
 }
 
 dependencies {
+   compile 'com.squareup.okhttp3:okhttp:3.4.1'
    implementation(name:'swipeanimationbutton', ext:'aar')
 }
 
