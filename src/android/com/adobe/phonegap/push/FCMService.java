@@ -92,6 +92,8 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
 
         String from = message.getFrom();
         Log.d(LOG_TAG, "onMessage - from: " + from);
+        Log.d(LOG_TAG, "getData: " + message.getData());
+        Log.d(LOG_TAG, "getVoip: " + (message.getData().get("voip")));
 
         Bundle extras = new Bundle();
 
@@ -199,9 +201,13 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         }
         String callId = messageData.get("callId");
         String callbackUrl = messageData.get("callbackUrl");
-
+        String user = messageData.get("user");
+        String device = messageData.get("device");
+        Log.d(LOG_TAG, "CallId " + callId);
+        Log.d(LOG_TAG, "user " + user);
+        Log.d(LOG_TAG, "device " + device);
         // Update Webhook status to CONNECTED
-        updateWebhookVOIPStatus(callbackUrl, callId, IncomingCallActivity.VOIP_CONNECTED);
+        updateWebhookVOIPStatus(callbackUrl, callId, IncomingCallActivity.VOIP_CONNECTED, user, device);
 
         // Intent for LockScreen or tapping on notification
         Intent fullScreenIntent = new Intent(this, IncomingCallActivity.class);
@@ -219,7 +225,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
 
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, CHANNEL_VOIP)
-                        .setSmallIcon(getResources().getIdentifier("pushicon", "drawable", getPackageName()))
+                        .setSmallIcon(getResources().getIdentifier("ic_videocall", "drawable", getPackageName()))
                         .setContentTitle("Incoming call")
                         .setContentText(caller)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -263,7 +269,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
                     dismissVOIPNotification();
                     String voipStatus = intent.getAction();
                     // Update Webhook status to CONNECTED
-                    updateWebhookVOIPStatus(callbackUrl, callId, voipStatus);
+                    updateWebhookVOIPStatus(callbackUrl, callId, voipStatus, user, device);
 
                     // Start cordova activity on answer
                     if (voipStatus.equals(IncomingCallActivity.VOIP_ACCEPT)) {
@@ -272,7 +278,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
                 }
             };
 
-            
+
             appContext.registerReceiver(voipNotificationActionBR, filter);
         }
     }
@@ -284,12 +290,15 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         }
     }
 
-    void updateWebhookVOIPStatus(String url, String callId, String status) {
+    void updateWebhookVOIPStatus(String url, String callId, String status, String user, String device) {
+
         OkHttpClient client = new OkHttpClient();
 
         HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
         urlBuilder.addQueryParameter("id", callId);
         urlBuilder.addQueryParameter("input", status);
+        urlBuilder.addQueryParameter("user", user);
+        urlBuilder.addQueryParameter("device", device);
         String urlBuilt = urlBuilder.build().toString();
         Request request = new Request.Builder().url(urlBuilt).build();
 
